@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
 	}	
 
 	int rc = parseFlags(argc, argv);
+	printf("rc: %d\n", rc);
 	if (rc < 0) {
 		printf(usage);
 		exit(0);
@@ -33,16 +34,25 @@ int main(int argc, char** argv) {
 			port = atoi(argv[rc]);
 		}
 		else {
-			// argv[i] must be a hostname -- save it
-			// argv[i + 1] must be port -- save it
+			hostname = argv[rc];
+			port = atoi(argv[rc + 1]);
 		}
 	}
 	else {
-		// argv[i] must be a hostname -- save it
-		// argv[i + 1] must be port -- save it
+		if((rc + 1) == argc) {
+			// if this is the last arg there is an error
+			printf(usage);
+			exit(0);
+		}
+		else {
+			hostname = argv[rc];
+			port = atoi(argv[rc + 1]);
+		}
 	}
-
-		
+	printf("IP Addr: %s\n", src_ip);
+	printf("Hostname: %s\n", hostname);
+	printf("Port: %d\n", port);
+	printf("kflag: %d\nlflag: %d\nuflag: %d\nsflag: %d\n", kFlag, lFlag, uFlag, sFlag);
 	return 0;
 
 }
@@ -58,7 +68,7 @@ int parseFlags(int argc, char** argv) {
 
 	int i;
 	for (i = 1; i < argc; i++) {
-		printf(argv[i]);
+		printf("%s\n", argv[i]);
 		if ( strcmp(argv[i], "-k") == 0 ) {
 			kFlag = 1;
 		}
@@ -69,7 +79,10 @@ int parseFlags(int argc, char** argv) {
 			uFlag = 1;
 		}
 		else if (strcmp(argv[i], "-s") == 0) {
-			// is it followed by src_ip? -- save it
+			// if not followed by src_ip return error
+			if ((i + 1) == argc) {
+				return -1;
+			}
 			src_ip = argv[i + 1];
 			sFlag = 1;
 			i++;
