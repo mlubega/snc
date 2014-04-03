@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char usage[62] = "Usage: [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
+char usage[66] = "Usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 int kFlag = 0;
 int lFlag = 0;
 int uFlag = 0;
