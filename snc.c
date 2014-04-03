@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* usage = "Usage: [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
+char usage[62] = "Usage: [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 
 int main(int argc, char** argv) {
 
