@@ -1,16 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-char usage[66] = "Usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
+char usage[66] = "usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
+char error[16] = "internal error\n";
 int kFlag = 0;
 int lFlag = 0;
 int uFlag = 0;
 int sFlag = 0;
-char *src_ip, *hostname; 
+char *src_ip, *hostname, *str_port;
 int port;
 
 int parseFlags(int argc, char** argv);
+int isNumeric(char *str);
+int isIP(char *str);
 
 int main(int argc, char** argv) {
 
@@ -25,17 +29,26 @@ int main(int argc, char** argv) {
 		printf(usage);
 		exit(0);
 	}
+	
+	// check if the number of args and flags makes sense
+	if (sFlag && ((argc - rc) > 3)) {
+		printf(usage);
+		exit(0);
+	} else if ((argc - rc) > 2) {
+		printf(usage);
+		exit(0);
+	}
 
 	// done with flags
 	if (lFlag) {
 		// this is last arg
 		if((rc + 1) == argc) {
 			// must be a port -- save it
-			port = atoi(argv[rc]);
+			str_port = argv[rc];
 		}
 		else {
 			hostname = argv[rc];
-			port = atoi(argv[rc + 1]);
+			str_port = argv[rc + 1];
 		}
 	}
 	else {
@@ -46,14 +59,66 @@ int main(int argc, char** argv) {
 		}
 		else {
 			hostname = argv[rc];
-			port = atoi(argv[rc + 1]);
+			str_port = argv[rc + 1];
 		}
 	}
+
+	// check the port
+	if (!isNumeric(str_port)) {
+		printf("port: %s\n", str_port);
+		printf(usage);
+		exit(0);
+	}
+	// check the IP
+	if ((src_ip != NULL) && !isIP(src_ip)) {
+		printf("src_ip: %s\n", src_ip);
+		printf(usage);
+		exit(0);
+	}
+	port = atoi(str_port);
+
+
 	printf("IP Addr: %s\n", src_ip);
 	printf("Hostname: %s\n", hostname);
 	printf("Port: %d\n", port);
 	printf("kflag: %d\nlflag: %d\nuflag: %d\nsflag: %d\n", kFlag, lFlag, uFlag, sFlag);
 	return 0;
+
+}
+
+/***
+ * Function: isNumeric(char *str)
+ *
+ * Checks if all of the characters in the given string are digits.  If they
+ * are, returns 1.  Else returns 0;
+ */
+int isNumeric(char *str) {
+	
+	while (*str) {
+		if (!isdigit(*str))
+			return 0;
+		str++;
+	}
+
+	return 1;
+
+}
+
+/****
+ * Function isIP(char *str)
+ *
+ * Checks if all of the characters in the given string are either digits or periods.
+ * If they are, returns 1.  Else returns 0.
+ */
+int isIP(char *str) {
+	
+	while (*str) {
+		if ( (!isdigit(*str)) && (*str != 46))
+			return 0;
+		str++;
+	}
+
+	return 1;
 
 }
 
