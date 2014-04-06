@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 char usage[66] = "usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 char error[16] = "internal error\n";
@@ -13,10 +15,42 @@ char *src_ip, *hostname, *str_port;
 int port;
 
 int parseFlags(int argc, char** argv);
+int parseArgs(int argc, char** argv);
 int isNumeric(char *str);
 int isIP(char *str);
 
 int main(int argc, char** argv) {
+	// handle user input
+	parseArgs(argc, argv);
+
+	// establish socket connection
+	int sockfd;
+	struct sockaddr_in sin;
+
+	// if UDP
+	if (uFlag) 
+		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	else // if TCP
+		sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (socket < 0) {
+		printf(error);
+		exit(0);
+	}
+
+	// bind the socket
+	
+	
+	return 0;
+
+}
+
+/***
+ * Function: parseArgs(int argc, char** argv)
+ *
+ * Parses user input. Prints an error message and exits when an
+ * error is encountered.
+ */
+int parseArgs(int argc, char** argv) {
 
 	if (argc < 3 || argc > 8) {
 		printf(usage);
@@ -39,7 +73,7 @@ int main(int argc, char** argv) {
 		exit(0);
 	}
 
-	// done with flags
+	// check non-flag arguments
 	if (lFlag) {
 		// this is last arg
 		if((rc + 1) == argc) {
@@ -83,7 +117,6 @@ int main(int argc, char** argv) {
 	printf("Port: %d\n", port);
 	printf("kflag: %d\nlflag: %d\nuflag: %d\nsflag: %d\n", kFlag, lFlag, uFlag, sFlag);
 	return 0;
-
 }
 
 /***
