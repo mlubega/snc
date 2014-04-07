@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
 char usage[66] = "usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 char error[16] = "internal error\n";
@@ -25,20 +26,30 @@ int main(int argc, char** argv) {
 
 	// establish socket connection
 	int sockfd;
-	struct sockaddr_in sin;
+	struct sockaddr_in *sin;
 
 	// if UDP
 	if (uFlag) 
 		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	else // if TCP
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (socket < 0) {
+	if (sockfd < 0) {
 		printf(error);
 		exit(0);
 	}
-
+	printf("Socket Established\n");
 	// bind the socket
-	
+	sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
+	sin->sin_family = AF_INET;
+	sin->sin_port = htons(port);
+	inet_pton(AF_INET, src_ip, &((sin->sin_addr).s_addr));
+
+	if(bind(sockfd, (struct sockaddr *)&sin,sizeof(struct sockaddr_in) ) == -1)
+	{
+		    printf(error);
+		    printf("binding socket failed\n");
+		    exit(0);
+	}
 	
 	return 0;
 
