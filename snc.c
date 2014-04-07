@@ -7,6 +7,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#define MAX_LINE 1024
+#define CTRL_D 4
+
 char usage[66] = "usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 char error[16] = "internal error\n";
 int kFlag = 0;
@@ -55,6 +58,7 @@ int main(int argc, char** argv) {
 			exit(0);
 		}
 
+		// need to listen and accept for TCP
 		if (!uFlag) {
 			rc = listen(sockfd, 5);
 
@@ -62,8 +66,16 @@ int main(int argc, char** argv) {
 				printf(error);
 				exit(0);
 			}
-			while (1) {
-				clientlen = sizeof(sockaddr_in);	
+			// keep listening for connections if k flag is specified
+			if (kFlag) {
+				while (1) {
+					clientlen = sizeof(sockaddr_in);	
+					connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
+				}
+			}
+			// otherwise only accept the first connection
+			else {
+				clientlen = sizeof(sockaddr_in);
 				connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
 			}
 	
@@ -78,13 +90,32 @@ int main(int argc, char** argv) {
 		} else {
 			sin.sin_addr.s_addr = inet_addr(hostname);
 		}
-		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
+		/*if (connect(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
 			printf(error);
 			printf("connection failed\n");
 			exit(0);
-		}
+		}*/
 
 	}
+
+	// read from stdin until enter or EOF (Ctrl ^ D) is reached
+	char *buffer = (char *) malloc(MAX_LINE);
+	char *check = (char *) malloc(MAX_LINE);
+	int exit = 0;
+	do {
+		check = fgets(buffer, MAX_LINE, stdin);
+		printf("first char: %c\n", *buffer);
+		if (check == NULL) {
+			// check lFlag and kFLag to see if it should remain open
+			exit = 1;
+			printf("CTRL + D!\n");
+		}
+		else {
+			printf("Read: %s\n", buffer);
+		}
+
+	} while (!exit);
+
 
 	// bind the socket
 	//sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
@@ -101,6 +132,7 @@ int main(int argc, char** argv) {
 		    exit(0);
 	}*/
 	
+	printf("exiting snc\n");
 	return 0;
 
 }
