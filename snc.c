@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define MAX_LINE 1024
 #define CTRL_D 4
@@ -25,6 +26,8 @@ int parseFlags(int argc, char** argv);
 int parseArgs(int argc, char** argv);
 int isNumeric(char *str);
 int isIP(char *str);
+void sendOutput(int sockfd);
+void getInput(int connfd);
 
 int main(int argc, char** argv) {
 	// handle user input
@@ -126,13 +129,15 @@ int main(int argc, char** argv) {
 			exit(0);
 		}
 
-		char sendbuf[MAX_LINE];
+
+
+		/*char sendbuf[MAX_LINE];
 		int sendbuflen;
 		while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
 			sendbuf[MAX_LINE - 1] = '\0';
 			sendbuflen = strlen(sendbuf) + 1;
 			send(sockfd, sendbuf, sendbuflen, 0);
-		}
+		}*/
 
 	}
 
@@ -174,6 +179,37 @@ int main(int argc, char** argv) {
 	return 0;
 
 }
+
+/**
+ * Function: getInput(int connfd)
+ *
+ * Listens for input from the specified socket until ctrl + D is entered
+ */
+void getInput(int connfd) {
+	char recvbuf[MAX_LINE];
+	while(recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
+		fputs(recvbuf, stdout);
+	}
+	close(connfd);
+
+}
+
+/***
+ * Function: sendOutput(int sockfd)
+ *
+ *  Sends output until ctrl + D is entered
+ */
+void sendOutput(int sockfd) {
+	int sendbuflen;
+	char sendbuf[MAX_LINE];
+	while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
+		sendbuf[MAX_LINE - 1] = '\0';
+		sendbuflen = strlen(sendbuf) + 1;
+		send(sockfd, sendbuf, sendbuflen, 0);
+	}
+	close(sockfd);
+}
+
 
 /***
  * Function: parseArgs(int argc, char** argv)
