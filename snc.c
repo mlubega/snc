@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <unistd.h>
 
 #define MAX_LINE 1024
 #define CTRL_D 4
@@ -66,40 +68,76 @@ int main(int argc, char** argv) {
 				printf(error);
 				exit(0);
 			}
+
+			char recvbuf[MAX_LINE];
 			// keep listening for connections if k flag is specified
 			if (kFlag) {
 				while (1) {
-					clientlen = sizeof(sockaddr_in);	
-					connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
+					//clientlen = sizeof(sockaddr_in);	
+					if ((connfd = accept(sockfd, (sockaddr*)&sin, (socklen_t*)&clientlen)) < 0) {
+						printf(error);
+						exit(0);
+					}
+					while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
+						fputs(recvbuf, stdout);
+					}
+					close(connfd);
 				}
 			}
 			// otherwise only accept the first connection
 			else {
-				clientlen = sizeof(sockaddr_in);
-				connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
+				printf("No k flag!\n");
+				//clientlen = sizeof(sockaddr_in);
+				//connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
+				if ((connfd = accept(sockfd, (sockaddr*)&sin, (socklen_t*)&clientlen)) < 0) {
+					printf(error);
+					exit(0);
+				}
+				while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
+					fputs(recvbuf, stdout);
+				}
+				close(connfd);
 			}
-	
 		}
 
 
 	} else { // WE ARE THE CLIENT
+		struct hostent *hp, *sp;
+		hp = gethostbyname(hostname);
+		if(!hp) {
+			printf(error);
+			exit(0);
+		}
+		
+		// build address data structure
+		bzero((char *)&sin, sizeof(sin));
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
 		if (sFlag) {
 			sin.sin_addr.s_addr = inet_addr(src_ip);
 		} else {
+			bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
 			sin.sin_addr.s_addr = inet_addr(hostname);
 		}
-		/*if (connect(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
+		// connect
+		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
 			printf(error);
 			printf("connection failed\n");
 			exit(0);
-		}*/
+		}
+
+		char sendbuf[MAX_LINE];
+		int sendbuflen;
+		while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
+			sendbuf[MAX_LINE - 1] = '\0';
+			sendbuflen = strlen(sendbuf) + 1;
+			send(sockfd, sendbuf, sendbuflen, 0);
+		}
 
 	}
 
 	// read from stdin until enter or EOF (Ctrl ^ D) is reached
-	char *buffer = (char *) malloc(MAX_LINE);
+	/*char *buffer = (char *) malloc(MAX_LINE);
 	char *check = (char *) malloc(MAX_LINE);
 	int exit = 0;
 	do {
@@ -115,7 +153,7 @@ int main(int argc, char** argv) {
 		}
 
 	} while (!exit);
-
+	*/
 
 	// bind the socket
 	//sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
