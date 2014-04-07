@@ -22,12 +22,16 @@ int sFlag = 0;
 char *src_ip, *hostname, *str_port;
 int port;
 
+
+pthread_t *in_data;
+pthread_t *out_data;
+
 int parseFlags(int argc, char** argv);
 int parseArgs(int argc, char** argv);
 int isNumeric(char *str);
 int isIP(char *str);
-void sendOutput(int sockfd);
-void getInput(int connfd);
+void  *sendOutput(void * arg);
+void *getInput(void * arg);
 
 int main(int argc, char** argv) {
 	// handle user input
@@ -76,16 +80,22 @@ int main(int argc, char** argv) {
 			// keep listening for connections if k flag is specified
 			if (kFlag) {
 				while (1) {
+
 					//clientlen = sizeof(sockaddr_in);	
 					if ((connfd = accept(sockfd, (sockaddr*)&sin, (socklen_t*)&clientlen)) < 0) {
 						printf(error);
 						exit(0);
 					}
+
+					pthread_create(out_data, NULL, sendOutput,  &sockfd );
+					
+					pthread_create(in_data, NULL, getInput, &connfd );
+/*
 					while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
 						fputs(recvbuf, stdout);
 					}
 					close(connfd);
-				}
+*/				}
 			}
 			// otherwise only accept the first connection
 			else {
@@ -96,11 +106,15 @@ int main(int argc, char** argv) {
 					printf(error);
 					exit(0);
 				}
-				while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
+				
+					pthread_create(out_data, NULL, sendOutput, &sockfd );
+					pthread_create(in_data, NULL, getInput, &connfd );
+
+/*				while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
 					fputs(recvbuf, stdout);
 				}
 				close(connfd);
-			}
+*/			}
 		}
 
 
@@ -123,13 +137,15 @@ int main(int argc, char** argv) {
 			sin.sin_addr.s_addr = inet_addr(hostname);
 		}
 		// connect
-		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
+		if (connfd = connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
 			printf(error);
 			printf("connection failed\n");
 			exit(0);
 		}
 
 
+					pthread_create(out_data, NULL,  sendOutput, &sockfd );
+					pthread_create(in_data, NULL,  getInput,  &connfd );
 
 		/*char sendbuf[MAX_LINE];
 		int sendbuflen;
@@ -185,12 +201,13 @@ int main(int argc, char** argv) {
  *
  * Listens for input from the specified socket until ctrl + D is entered
  */
-void getInput(int connfd) {
+void * getInput(void * arg) {
+	int *connfd = (int *)arg;
 	char recvbuf[MAX_LINE];
-	while(recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
+	while(recv(*connfd, recvbuf, sizeof(recvbuf), 0)) {
 		fputs(recvbuf, stdout);
 	}
-	close(connfd);
+	close(*connfd);
 
 }
 
@@ -199,15 +216,16 @@ void getInput(int connfd) {
  *
  *  Sends output until ctrl + D is entered
  */
-void sendOutput(int sockfd) {
+void * sendOutput( void * arg) {
+	int * sockfd =(int * ) arg;
 	int sendbuflen;
 	char sendbuf[MAX_LINE];
 	while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
 		sendbuf[MAX_LINE - 1] = '\0';
 		sendbuflen = strlen(sendbuf) + 1;
-		send(sockfd, sendbuf, sendbuflen, 0);
+		send(*sockfd, sendbuf, sendbuflen, 0);
 	}
-	close(sockfd);
+	close(*sockfd);
 }
 
 
