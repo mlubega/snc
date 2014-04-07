@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 char usage[66] = "usage: snc [-k] [-l] [-u] [-s source_ip_address] [hostname] port\n";
 char error[16] = "internal error\n";
@@ -26,7 +27,7 @@ int main(int argc, char** argv) {
 
 	// establish socket connection
 	int sockfd;
-	struct sockaddr_in *sin;
+	struct sockaddr_in sin;
 
 	// if UDP
 	if (uFlag) 
@@ -38,18 +39,67 @@ int main(int argc, char** argv) {
 		exit(0);
 	}
 	printf("Socket Established\n");
-	// bind the socket
-	sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
-	sin->sin_family = AF_INET;
-	sin->sin_port = htons(port);
-	inet_pton(AF_INET, src_ip, &((sin->sin_addr).s_addr));
+	
+	int rc, clientlen, connfd;
+	struct sockaddr_in clientaddr;
 
-	if(bind(sockfd, (struct sockaddr *)&sin,sizeof(struct sockaddr_in) ) == -1)
+	// WE ARE THE SERVER
+	if (lFlag) {
+		sin.sin_family = AF_INET;
+		sin.sin_port = htons(port);
+		sin.sin_addr.s_addr = INADDR_ANY;
+
+		if (bind(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
+			printf(error);
+			printf("binding socket failed\n");
+			exit(0);
+		}
+
+		if (!uFlag) {
+			rc = listen(sockfd, 5);
+
+			if (rc < 0) {
+				printf(error);
+				exit(0);
+			}
+			while (1) {
+				clientlen = sizeof(sockaddr_in);	
+				connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
+			}
+	
+		}
+
+
+	} else { // WE ARE THE CLIENT
+		sin.sin_family = AF_INET;
+		sin.sin_port = htons(port);
+		if (sFlag) {
+			sin.sin_addr.s_addr = inet_addr(src_ip);
+		} else {
+			sin.sin_addr.s_addr = inet_addr(hostname);
+		}
+		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
+			printf(error);
+			printf("connection failed\n");
+			exit(0);
+		}
+
+	}
+
+	// bind the socket
+	//sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
+	/*sin.sin_family = AF_INET;
+	sin.sin_port = htons(port);
+	printf("src_ip: %s\n", src_ip);
+	sin.sin_addr.s_addr = inet_addr();
+	//inet_pton(AF_INET, src_ip, &((sin->sin_addr).s_addr));
+
+	if(bind(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in) ) == -1)
 	{
 		    printf(error);
 		    printf("binding socket failed\n");
 		    exit(0);
-	}
+	}*/
 	
 	return 0;
 
