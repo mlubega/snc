@@ -23,8 +23,8 @@ char *src_ip, *hostname, *str_port;
 int port;
 
 
-pthread_t *in_data;
-pthread_t *out_data;
+pthread_t *in_data = (pthread_t*)malloc(sizeof(pthread_t));
+pthread_t *out_data = (pthread_t *)malloc(sizeof(pthread_t));
 
 int parseFlags(int argc, char** argv);
 int parseArgs(int argc, char** argv);
