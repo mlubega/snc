@@ -32,15 +32,14 @@ int isNumeric(char *str);
 int isIP(char *str);
 void  *sendOutput(void * arg);
 void *getInput(void * arg);
+int sockfd;
+struct sockaddr_in sin;
 
 int main(int argc, char** argv) {
 	// handle user input
 	parseArgs(argc, argv);
 
 	// establish socket connection
-	int sockfd;
-	struct sockaddr_in sin;
-
 	// if UDP
 	if (uFlag) 
 		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -69,7 +68,7 @@ int main(int argc, char** argv) {
 
 		// need to listen and accept for TCP
 		if (!uFlag) {
-			rc = listen(sockfd, 5);
+			rc = listen(sockfd, 1); // 1 is backlog value
 
 			if (rc < 0) {
 				printf(error);
@@ -91,10 +90,6 @@ int main(int argc, char** argv) {
 					
 					pthread_create(in_data, NULL, getInput, &connfd );
 /*
-					while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
-						fputs(recvbuf, stdout);
-					}
-					close(connfd);
 */				}
 			}
 			// otherwise only accept the first connection
@@ -106,46 +101,62 @@ int main(int argc, char** argv) {
 					printf(error);
 					exit(0);
 				}
-				
+				printf("connfd: %d\n", connfd);
+				printf("sockfd: %d\n", sockfd);
 					pthread_create(out_data, NULL, sendOutput, &sockfd );
 					pthread_create(in_data, NULL, getInput, &connfd );
-
-/*				while(clientlen = recv(connfd, recvbuf, sizeof(recvbuf), 0)) {
-					fputs(recvbuf, stdout);
-				}
-				close(connfd);
-*/			}
-		}
-
-
+			}
+	}	
 	} else { // WE ARE THE CLIENT
 		struct hostent *hp, *sp;
+		
 		hp = gethostbyname(hostname);
 		if(!hp) {
 			printf(error);
 			exit(0);
 		}
 		
-		// build address data structure
+		// build hostname data structure
 		bzero((char *)&sin, sizeof(sin));
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
+		bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
+		sin.sin_addr.s_addr = inet_addr(hostname);
+		
 		if (sFlag) {
-			sin.sin_addr.s_addr = inet_addr(src_ip);
-		} else {
-			bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
-			sin.sin_addr.s_addr = inet_addr(hostname);
-		}
+			// build src_ip data structure
+			struct sockaddr_in srcipsin;
+			bzero((char *)&srcipsin, sizeof(srcipsin));
+			srcipsin.sin_family = AF_INET;
+			srcipsin.sin_port = htons(port);
+			
+			if (src_ip != NULL) {
+				sp = gethostbyname(src_ip);
+			} else {
+				printf(error);
+				exit(0);
+			}
+			bcopy(sp->h_addr, (char*)&srcipsin.sin_addr, sp->h_length);
+			srcipsin.sin_addr.s_addr = inet_addr(src_ip);
+
+			// bind to specified interface
+			if (bind(sockfd, (struct sockaddr *)&srcipsin, sizeof(struct sockaddr_in)) == -1) {
+				printf(error);
+				printf("binding socket failed\n");
+				exit(0);
+			}
+		}	
+		
 		// connect
-		if (connfd = connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
+		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
 			printf(error);
-			printf("connection failed\n");
+			printf("client connection failed\n");
 			exit(0);
 		}
-
+		
 
 					pthread_create(out_data, NULL,  sendOutput, &sockfd );
-					pthread_create(in_data, NULL,  getInput,  &connfd );
+					pthread_create(in_data, NULL,  getInput,  &sockfd );
 
 		/*char sendbuf[MAX_LINE];
 		int sendbuflen;
@@ -191,6 +202,8 @@ int main(int argc, char** argv) {
 		    exit(0);
 	}*/
 	
+	pthread_join(*in_data, NULL);
+	pthread_join(*out_data, NULL);
 	printf("exiting snc\n");
 	return 0;
 
@@ -204,11 +217,21 @@ int main(int argc, char** argv) {
 void * getInput(void * arg) {
 	int *connfd = (int *)arg;
 	char recvbuf[MAX_LINE];
-	while(recv(*connfd, recvbuf, sizeof(recvbuf), 0)) {
-		fputs(recvbuf, stdout);
+	printf("connfd: %d\n", *connfd);
+	if (uFlag) {
+		/*struct sockaddr_in recvaddr;
+		int addrlen = sizeof(recvaddr);
+		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, &recvaddr, &addrlen)) {
+			fputs(recvbuf, stdout);
+		}*/
+	} else {
+		while(recv(*connfd, recvbuf, sizeof(recvbuf), 0)) {
+			fputs(recvbuf, stdout);
+		}
 	}
+	printf("Closing connection due to no input\n");
 	close(*connfd);
-
+	pthread_cancel(*out_data);
 }
 
 /***
@@ -220,12 +243,25 @@ void * sendOutput( void * arg) {
 	int * sockfd =(int * ) arg;
 	int sendbuflen;
 	char sendbuf[MAX_LINE];
+	printf("sockfd: %d\n", *sockfd);
 	while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
 		sendbuf[MAX_LINE - 1] = '\0';
 		sendbuflen = strlen(sendbuf) + 1;
-		send(*sockfd, sendbuf, sendbuflen, 0);
+		if (uFlag) {
+		/*	struct sockaddr_in addr;
+			addr.sin_family = AF_INET;
+			addr.sin_port = htons(port);
+			addr.sin_addr.s_addr = 
+		
+			int addrlen = sizeof(addr);
+			sendto(*sockfd, sendbuf, sendbuflen, 0, &addr, &addrlen);*/
+		} else {
+			send(*sockfd, sendbuf, sendbuflen, 0);
+		}
 	}
+	printf("closing connection due to ctrl + D\n");
 	close(*sockfd);
+	pthread_cancel(*in_data);
 }
 
 
