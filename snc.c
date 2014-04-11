@@ -76,21 +76,18 @@ int main(int argc, char** argv) {
 			}
 
 			char recvbuf[MAX_LINE];
+
 			// keep listening for connections if k flag is specified
 			if (kFlag) {
 				while (1) {
-
 					//clientlen = sizeof(sockaddr_in);	
 					if ((connfd = accept(sockfd, (sockaddr*)&sin, (socklen_t*)&clientlen)) < 0) {
 						printf(error);
 						exit(0);
 					}
-
 					pthread_create(out_data, NULL, sendOutput,  &connfd );
-					
 					pthread_create(in_data, NULL, getInput, &connfd );
-/*
-*/				}
+				}
 			}
 			// otherwise only accept the first connection
 			else {
@@ -101,12 +98,19 @@ int main(int argc, char** argv) {
 					printf(error);
 					exit(0);
 				}
-				printf("connfd: %d\n", connfd);
-				printf("sockfd: %d\n", sockfd);
-					pthread_create(out_data, NULL, sendOutput, &connfd );
-					pthread_create(in_data, NULL, getInput, &connfd );
+				pthread_create(out_data, NULL, sendOutput, &connfd );
+				pthread_create(in_data, NULL, getInput, &connfd );
 			}
-	}	
+
+		// UDP Packets
+		}else{
+
+				//Right now just testing server can recieve UCP packets
+				pthread_create(out_data, NULL, sendOutput, &sockfd );
+				pthread_create(in_data, NULL, getInput, &sockfd );
+
+		}//end UCP (server)
+
 	} else { // WE ARE THE CLIENT
 		struct hostent *hp, *sp;
 		
@@ -124,18 +128,21 @@ int main(int argc, char** argv) {
 		sin.sin_addr.s_addr = inet_addr(hostname);
 		
 		if (sFlag) {
+					
+			//verify ip exists
+			if (src_ip == NULL) {
+				printf(error);
+				exit(0);
+			}
+
 			// build src_ip data structure
 			struct sockaddr_in srcipsin;
 			bzero((char *)&srcipsin, sizeof(srcipsin));
 			srcipsin.sin_family = AF_INET;
 			srcipsin.sin_port = htons(port);
 			
-			if (src_ip != NULL) {
-				sp = gethostbyname(src_ip);
-			} else {
-				printf(error);
-				exit(0);
-			}
+			sp = gethostbyname(src_ip);
+			
 			bcopy(sp->h_addr, (char*)&srcipsin.sin_addr, sp->h_length);
 			srcipsin.sin_addr.s_addr = inet_addr(src_ip);
 
@@ -155,16 +162,9 @@ int main(int argc, char** argv) {
 		}
 		
 
-					pthread_create(out_data, NULL,  sendOutput, &sockfd );
-					pthread_create(in_data, NULL,  getInput,  &sockfd );
+		pthread_create(out_data, NULL,  sendOutput, &sockfd );
+		pthread_create(in_data, NULL,  getInput,  &sockfd );
 
-		/*char sendbuf[MAX_LINE];
-		int sendbuflen;
-		while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
-			sendbuf[MAX_LINE - 1] = '\0';
-			sendbuflen = strlen(sendbuf) + 1;
-			send(sockfd, sendbuf, sendbuflen, 0);
-		}*/
 
 	}
 
@@ -219,11 +219,11 @@ void * getInput(void * arg) {
 	char recvbuf[MAX_LINE];
 	printf("connfd: %d\n", *connfd);
 	if (uFlag) {
-		/*struct sockaddr_in recvaddr;
+		struct sockaddr_in recvaddr;
 		int addrlen = sizeof(recvaddr);
-		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, &recvaddr, &addrlen)) {
+		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, (sockaddr *)&recvaddr, (socklen_t*) &addrlen)) {
 			fputs(recvbuf, stdout);
-		}*/
+		}
 	} else {
 		while(recv(*connfd, recvbuf, sizeof(recvbuf), 0)) {
 			fputs(recvbuf, stdout);
@@ -247,7 +247,9 @@ void * sendOutput( void * arg) {
 	while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
 		sendbuf[MAX_LINE - 1] = '\0';
 		sendbuflen = strlen(sendbuf) + 1;
+		
 		if (uFlag) {
+
 		/*	struct sockaddr_in addr;
 			addr.sin_family = AF_INET;
 			addr.sin_port = htons(port);
@@ -255,6 +257,10 @@ void * sendOutput( void * arg) {
 		
 			int addrlen = sizeof(addr);
 			sendto(*sockfd, sendbuf, sendbuflen, 0, &addr, &addrlen);*/
+
+			int sz_sin = sizeof(sin);
+			int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)&sin, (socklen_t )sz_sin);	
+			printf("bytes sendto: %u\n", rc);
 		} else {
 			send(*sockfd, sendbuf, sendbuflen, 0);
 		}
