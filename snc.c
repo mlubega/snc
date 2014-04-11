@@ -36,6 +36,7 @@ int sockfd;
 struct sockaddr_in sin;
 struct sockaddr_in * recvaddr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in)); // struct to recieve UDP sender info
 int addrlen = sizeof(struct sockaddr_in);
+int rcvdfromclient = 0; // 1 if we are server and client has already sent us a message
 
 int main(int argc, char** argv) {
 	// handle user input
@@ -218,12 +219,13 @@ int main(int argc, char** argv) {
 void * getInput(void * arg) {
 	int *connfd = (int *)arg;
 	char recvbuf[MAX_LINE];
+	int rc;
 	printf("connfd: %d\n", *connfd);
 	if (uFlag) {
-		//struct sockaddr_in recvaddr;
-		//int addrlen = sizeof(recvaddr);
 		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, (sockaddr *)recvaddr, (socklen_t*)&addrlen)) {
 			fputs(recvbuf, stdout);
+			if (lFlag)
+				rcvdfromclient = 1;
 		}
 	} else {
 		while(recv(*connfd, recvbuf, sizeof(recvbuf), 0)) {
@@ -253,17 +255,18 @@ void * sendOutput( void * arg) {
 			
 			//server needs to have recieved a packet from client before sending	
 			if(lFlag){
-				while(!recvaddr){
+				while(!rcvdfromclient){
 				   printf("I don't know where to send, silly!\n");
+				   pthread_yield();
 				}
 				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)recvaddr, (socklen_t )addrlen);	
 				printf("server--bytes sendto: %u\n", rc);
 			}
 			//client already knows where it wants to send
 			else{
-			int sz_sin = sizeof(sin);
-			int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)&sin, (socklen_t )sz_sin);	
-			printf("client --bytes sendto: %u\n", rc);
+				int sz_sin = sizeof(sin);
+				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)&sin, (socklen_t )sz_sin);	
+				printf("client --bytes sendto: %u\n", rc);
 			}
 		} else {
 			send(*sockfd, sendbuf, sendbuflen, 0);
