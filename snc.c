@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 						exit(0);
 					}
 
-					pthread_create(out_data, NULL, sendOutput,  &sockfd );
+					pthread_create(out_data, NULL, sendOutput,  &connfd );
 					
 					pthread_create(in_data, NULL, getInput, &connfd );
 /*
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 				}
 				printf("connfd: %d\n", connfd);
 				printf("sockfd: %d\n", sockfd);
-					pthread_create(out_data, NULL, sendOutput, &sockfd );
+					pthread_create(out_data, NULL, sendOutput, &connfd );
 					pthread_create(in_data, NULL, getInput, &connfd );
 			}
 	}	
