@@ -253,7 +253,9 @@ void * sendOutput( void * arg) {
 			
 			//server needs to have recieved a packet from client before sending	
 			if(lFlag){
-				while(!recvaddr){}
+				while(!recvaddr){
+				   printf("I don't know where to send, silly!\n");
+				}
 				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)recvaddr, (socklen_t )addrlen);	
 				printf("server--bytes sendto: %u\n", rc);
 			}
