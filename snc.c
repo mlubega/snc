@@ -34,6 +34,8 @@ void  *sendOutput(void * arg);
 void *getInput(void * arg);
 int sockfd;
 struct sockaddr_in sin;
+struct sockaddr_in * recvaddr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in)); // struct to recieve UDP sender info
+int addrlen = sizeof(struct sockaddr_in);
 
 int main(int argc, char** argv) {
 	// handle user input
@@ -105,7 +107,6 @@ int main(int argc, char** argv) {
 		// UDP Packets
 		}else{
 
-				//Right now just testing server can recieve UCP packets
 				pthread_create(out_data, NULL, sendOutput, &sockfd );
 				pthread_create(in_data, NULL, getInput, &sockfd );
 
@@ -219,9 +220,9 @@ void * getInput(void * arg) {
 	char recvbuf[MAX_LINE];
 	printf("connfd: %d\n", *connfd);
 	if (uFlag) {
-		struct sockaddr_in recvaddr;
-		int addrlen = sizeof(recvaddr);
-		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, (sockaddr *)&recvaddr, (socklen_t*) &addrlen)) {
+		//struct sockaddr_in recvaddr;
+		//int addrlen = sizeof(recvaddr);
+		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, (sockaddr *)recvaddr, (socklen_t*)&addrlen)) {
 			fputs(recvbuf, stdout);
 		}
 	} else {
@@ -249,18 +250,19 @@ void * sendOutput( void * arg) {
 		sendbuflen = strlen(sendbuf) + 1;
 		
 		if (uFlag) {
-
-		/*	struct sockaddr_in addr;
-			addr.sin_family = AF_INET;
-			addr.sin_port = htons(port);
-			addr.sin_addr.s_addr = 
-		
-			int addrlen = sizeof(addr);
-			sendto(*sockfd, sendbuf, sendbuflen, 0, &addr, &addrlen);*/
-
+			
+			//server needs to have recieved a packet from client before sending	
+			if(lFlag){
+				while(!recvaddr){}
+				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)recvaddr, (socklen_t )addrlen);	
+				printf("server--bytes sendto: %u\n", rc);
+			}
+			//client already knows where it wants to send
+			else{
 			int sz_sin = sizeof(sin);
 			int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)&sin, (socklen_t )sz_sin);	
-			printf("bytes sendto: %u\n", rc);
+			printf("client --bytes sendto: %u\n", rc);
+			}
 		} else {
 			send(*sockfd, sendbuf, sendbuflen, 0);
 		}
