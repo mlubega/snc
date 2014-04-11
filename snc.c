@@ -273,8 +273,13 @@ void * sendOutput( void * arg) {
 		}
 	}
 	printf("closing connection due to ctrl + D\n");
-	close(*sockfd);
-	pthread_cancel(*in_data);
+	//close(*sockfd);
+	// cancel the receiving thread unless UDP is being used
+	if (!uFlag) {
+		printf("cancelling receiving thread\n");
+		close(*sockfd);
+		pthread_cancel(*in_data);
+	}
 }
 
 
