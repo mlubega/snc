@@ -273,6 +273,7 @@ void * sendOutput( void * arg) {
 		}
 	}
 	printf("closing connection due to ctrl + D\n");
+	rcvdfromclient = 0; // reset var when connection is shut down
 	//close(*sockfd);
 	// cancel the receiving thread unless UDP is being used
 	if (!uFlag) {
