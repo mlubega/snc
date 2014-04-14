@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
 		bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
-		sin.sin_addr.s_addr = htons(inet_addr(hostname));
+		sin.sin_addr.s_addr = htonl(inet_addr(hostname));
 		
 		if (sFlag) {
 					
