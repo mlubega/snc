@@ -65,10 +65,14 @@ int main(int argc, char** argv) {
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
 		
-		hp = gethostbyname(hostname);
-		if(!hp) {
+		if(!hostname) {
 			sin.sin_addr.s_addr = INADDR_ANY;
 		} else {
+			hp = gethostbyname(hostname);
+			if (!hp) {
+				printf(error);
+				exit(0);
+			}
 			bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
 			sin.sin_addr.s_addr = inet_addr(hostname);
 		}
