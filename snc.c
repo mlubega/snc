@@ -37,6 +37,7 @@ struct sockaddr_in sin;
 struct sockaddr_in * recvaddr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in)); // struct to recieve UDP sender info
 int addrlen = sizeof(struct sockaddr_in);
 int rcvdfromclient = 0; // 1 if we are server and client has already sent us a message
+struct hostent *hp, *sp;
 
 int main(int argc, char** argv) {
 	// handle user input
@@ -59,10 +60,19 @@ int main(int argc, char** argv) {
 
 	// WE ARE THE SERVER
 	if (lFlag) {
+		// build hostname data structure
+		bzero((char *)&sin, sizeof(sin));
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
-		sin.sin_addr.s_addr = INADDR_ANY;
-
+		
+		hp = gethostbyname(hostname);
+		if(!hp) {
+			sin.sin_addr.s_addr = INADDR_ANY;
+		} else {
+			bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
+			sin.sin_addr.s_addr = inet_addr(hostname);
+		}
+		
 		if (bind(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
 			printf(error);
 			printf("binding socket failed\n");
@@ -114,7 +124,6 @@ int main(int argc, char** argv) {
 		}//end UCP (server)
 
 	} else { // WE ARE THE CLIENT
-		struct hostent *hp, *sp;
 		
 		hp = gethostbyname(hostname);
 		if(!hp) {
@@ -170,40 +179,6 @@ int main(int argc, char** argv) {
 
 	}
 
-	// read from stdin until enter or EOF (Ctrl ^ D) is reached
-	/*char *buffer = (char *) malloc(MAX_LINE);
-	char *check = (char *) malloc(MAX_LINE);
-	int exit = 0;
-	do {
-		check = fgets(buffer, MAX_LINE, stdin);
-		printf("first char: %c\n", *buffer);
-		if (check == NULL) {
-			// check lFlag and kFLag to see if it should remain open
-			exit = 1;
-			printf("CTRL + D!\n");
-		}
-		else {
-			printf("Read: %s\n", buffer);
-		}
-
-	} while (!exit);
-	*/
-
-	// bind the socket
-	//sin = (sockaddr_in*)malloc(sizeof(struct sockaddr_in)); 
-	/*sin.sin_family = AF_INET;
-	sin.sin_port = htons(port);
-	printf("src_ip: %s\n", src_ip);
-	sin.sin_addr.s_addr = inet_addr();
-	//inet_pton(AF_INET, src_ip, &((sin->sin_addr).s_addr));
-
-	if(bind(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in) ) == -1)
-	{
-		    printf(error);
-		    printf("binding socket failed\n");
-		    exit(0);
-	}*/
-	
 	pthread_join(*in_data, NULL);
 	pthread_join(*out_data, NULL);
 	printf("exiting snc\n");
