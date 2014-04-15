@@ -140,8 +140,12 @@ int main(int argc, char** argv) {
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
 		bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
-		sin.sin_addr.s_addr = inet_addr(hostname);
-		
+		if (isIP(hostname)) 
+			sin.sin_addr.s_addr = inet_addr(hostname);
+		else {
+			// convert hostname to ip	
+		}
+
 		if (sFlag) {
 					
 			//verify ip exists
