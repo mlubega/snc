@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 		printf(error);
 		exit(0);
 	}
-	printf("Socket Established\n");
+	//printf("Socket Established\n");
 	
 	int rc, clientlen, connfd;
 	struct sockaddr_in clientaddr;
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 		
 		if (bind(sockfd, (struct sockaddr *)&sin, sizeof(struct sockaddr_in)) == -1) {
 			printf(error);
-			printf("binding socket failed\n");
+			//printf("binding socket failed\n");
 			exit(0);
 		}
 
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 			}
 			// otherwise only accept the first connection
 			else {
-				printf("No k flag!\n");
+				//printf("No k flag!\n");
 				//clientlen = sizeof(sockaddr_in);
 				//connfd = accept(sockfd, (sockaddr*)&clientaddr, (socklen_t*)&clientlen);
 				if ((connfd = accept(sockfd, (sockaddr*)&sin, (socklen_t*)&clientlen)) < 0) {
@@ -140,11 +140,11 @@ int main(int argc, char** argv) {
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(port);
 		bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
-		if (isIP(hostname)) 
+		/*if (isIP(hostname)) 
 			sin.sin_addr.s_addr = inet_addr(hostname);
 		else {
 			// convert hostname to ip	
-		}
+		}*/
 
 		if (sFlag) {
 					
@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
 			// bind to specified interface
 			if (bind(sockfd, (struct sockaddr *)&srcipsin, sizeof(struct sockaddr_in)) == -1) {
 				printf(error);
-				printf("binding socket failed\n");
+				//printf("binding socket failed\n");
 				exit(0);
 			}
 		}	
@@ -176,7 +176,6 @@ int main(int argc, char** argv) {
 		// connect
 		if (connect(sockfd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
 			printf(error);
-			printf("client connection failed\n");
 			exit(0);
 		}
 		
@@ -189,7 +188,7 @@ int main(int argc, char** argv) {
 
 	pthread_join(*in_data, NULL);
 	pthread_join(*out_data, NULL);
-	printf("exiting snc\n");
+	//printf("exiting snc\n");
 	return 0;
 
 }
@@ -203,7 +202,7 @@ void * getInput(void * arg) {
 	int *connfd = (int *)arg;
 	char recvbuf[MAX_LINE];
 	int rc;
-	printf("connfd: %d\n", *connfd);
+	//printf("connfd: %d\n", *connfd);
 	if (uFlag) {
 		while(recvfrom(*connfd, recvbuf, sizeof(recvbuf), 0, (sockaddr *)recvaddr, (socklen_t*)&addrlen)) {
 			fputs(recvbuf, stdout);
@@ -215,7 +214,7 @@ void * getInput(void * arg) {
 			fputs(recvbuf, stdout);
 		}
 	}
-	printf("Closing connection due to no input\n");
+	//printf("Closing connection due to no input\n");
 	close(*connfd);
 	pthread_cancel(*out_data);
 }
@@ -229,7 +228,7 @@ void * sendOutput( void * arg) {
 	int * sockfd =(int * ) arg;
 	int sendbuflen;
 	char sendbuf[MAX_LINE];
-	printf("sockfd: %d\n", *sockfd);
+	//printf("sockfd: %d\n", *sockfd);
 	while (fgets(sendbuf, sizeof(sendbuf), stdin)) {
 		sendbuf[MAX_LINE - 1] = '\0';
 		sendbuflen = strlen(sendbuf) + 1;
@@ -239,28 +238,28 @@ void * sendOutput( void * arg) {
 			//server needs to have recieved a packet from client before sending	
 			if(lFlag){
 				while(!rcvdfromclient){
-				   printf("I don't know where to send, silly!\n");
+				   //printf("I don't know where to send, silly!\n");
 				   pthread_yield();
 				}
 				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)recvaddr, (socklen_t )addrlen);	
-				printf("server--bytes sendto: %u\n", rc);
+				//printf("server--bytes sendto: %u\n", rc);
 			}
 			//client already knows where it wants to send
 			else{
 				int sz_sin = sizeof(sin);
 				int rc = sendto(*sockfd, sendbuf, sendbuflen, 0, (sockaddr *)&sin, (socklen_t )sz_sin);	
-				printf("client --bytes sendto: %u\n", rc);
+				//printf("client --bytes sendto: %u\n", rc);
 			}
 		} else {
 			send(*sockfd, sendbuf, sendbuflen, 0);
 		}
 	}
-	printf("closing connection due to ctrl + D\n");
+	//printf("closing connection due to ctrl + D\n");
 	rcvdfromclient = 0; // reset var when connection is shut down
 	//close(*sockfd);
 	// cancel the receiving thread unless UDP is being used
 	if (!uFlag) {
-		printf("cancelling receiving thread\n");
+		//printf("cancelling receiving thread\n");
 		close(*sockfd);
 		pthread_cancel(*in_data);
 	}
@@ -281,7 +280,7 @@ int parseArgs(int argc, char** argv) {
 	}	
 
 	int rc = parseFlags(argc, argv);
-	printf("rc: %d\n", rc);
+	//printf("rc: %d\n", rc);
 	if (rc < 0) {
 		printf(usage);
 		exit(0);
@@ -322,23 +321,23 @@ int parseArgs(int argc, char** argv) {
 
 	// check the port
 	if (!isNumeric(str_port)) {
-		printf("port: %s\n", str_port);
+		//printf("port: %s\n", str_port);
 		printf(usage);
 		exit(0);
 	}
 	// check the IP
 	if ((src_ip != NULL) && !isIP(src_ip)) {
-		printf("src_ip: %s\n", src_ip);
+		//printf("src_ip: %s\n", src_ip);
 		printf(usage);
 		exit(0);
 	}
 	port = atoi(str_port);
 
 
-	printf("IP Addr: %s\n", src_ip);
-	printf("Hostname: %s\n", hostname);
-	printf("Port: %d\n", port);
-	printf("kflag: %d\nlflag: %d\nuflag: %d\nsflag: %d\n", kFlag, lFlag, uFlag, sFlag);
+	//printf("IP Addr: %s\n", src_ip);
+	//printf("Hostname: %s\n", hostname);
+	//printf("Port: %d\n", port);
+	//printf("kflag: %d\nlflag: %d\nuflag: %d\nsflag: %d\n", kFlag, lFlag, uFlag, sFlag);
 	return 0;
 }
 
@@ -389,7 +388,7 @@ int parseFlags(int argc, char** argv) {
 
 	int i;
 	for (i = 1; i < argc; i++) {
-		printf("%s\n", argv[i]);
+		//printf("%s\n", argv[i]);
 		if ( strcmp(argv[i], "-k") == 0 ) {
 			kFlag = 1;
 		}
